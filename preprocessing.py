@@ -25,6 +25,35 @@ def display_all_slices(nii_file_path):
     plt.show()
 
 
+# Display slices with mask overly
+def display_slices_with_mask(slices, masks, alpha=0.7, rows=3):
+    num_slices = slices.shape[2]
+    cols = int(np.ceil(num_slices / rows))
+
+    fig, axes = plt.subplots(rows, cols, figsize=(20, 3 * rows))
+    axes = axes.flatten()  # Flatten the 2D array of axes for easier indexing
+
+    for i in range(num_slices):
+        # Display the original slice
+        axes[i].imshow(slices[:, :, i], cmap='gray')
+
+        # Create a red transparent mask
+        red_mask = np.zeros((*masks[:, :, i].shape, 4))
+        red_mask[masks[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+
+        # Overlay the red transparent mask
+        axes[i].imshow(red_mask)
+
+        axes[i].axis('off')
+
+    # Hide any unused subplots
+    for i in range(num_slices, len(axes)):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
 # Function to resize a 3D image to the target shape
 def resize_volume(img, target_shape):
     """
