@@ -26,7 +26,7 @@ def display_all_slices(nii_file_path):
 
 
 # Display slices with mask overly
-def display_slices_with_mask(slices, masks, alpha=0.7, rows=3):
+def display_slices_with_masks(slices, masks, alpha=0.7, rows=3):
     num_slices = slices.shape[2]
     cols = int(np.ceil(num_slices / rows))
 
