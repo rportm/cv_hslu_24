@@ -25,8 +25,8 @@ def display_all_slices(nii_file_path):
     plt.show()
 
 
-# Display slices with mask overly
-def display_slices_with_masks(slices, masks, alpha=0.7, rows=3):
+# Display slices with mask overlay
+def display_slices_with_masks(slices, masks=None, alpha=0.7, rows=3):
     num_slices = slices.shape[2]
     cols = int(np.ceil(num_slices / rows))
 
@@ -38,11 +38,12 @@ def display_slices_with_masks(slices, masks, alpha=0.7, rows=3):
         axes[i].imshow(slices[:, :, i], cmap='gray')
 
         # Create a red transparent mask
-        red_mask = np.zeros((*masks[:, :, i].shape, 4))
-        red_mask[masks[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+        if masks is not None:
+            red_mask = np.zeros((*masks[:, :, i].shape, 4))
+            red_mask[masks[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
 
-        # Overlay the red transparent mask
-        axes[i].imshow(red_mask)
+            # Overlay the red transparent mask
+            axes[i].imshow(red_mask)
 
         axes[i].axis('off')
 
