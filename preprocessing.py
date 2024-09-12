@@ -137,10 +137,10 @@ def separate_images_masks(all_data):
 
 
 # resize all the images
-def resize_all_images(images):
+def resize_all_images(images, x=256, y=256):
     resized_images = []
     for image in images:
-        resized_image = resize_volume(image, (256, 256, image.shape[-1]))
+        resized_image = resize_volume(image, (x, y, image.shape[-1]))
         resized_images.append(resized_image)
     return resized_images
 
