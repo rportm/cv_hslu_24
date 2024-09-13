@@ -36,7 +36,7 @@ def display_image(image, mask=None, alpha=0.7, rows=3):
 
 
 # Display numpy slices with mask overlay
-def display_slices(slices, masks=None, alpha=0.7, rows=3):
+def display_slices(slices, masks=None, predictions=None, alpha=0.7, rows=3):
     num_slices = slices.shape[0]
     cols = int(np.ceil(num_slices / rows))
 
@@ -49,11 +49,18 @@ def display_slices(slices, masks=None, alpha=0.7, rows=3):
 
         # Create a red transparent mask
         if masks is not None:
-            red_mask = np.zeros((*masks[i].shape, 4))
-            red_mask[masks[i, :, :] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+            mask_overlay = np.zeros((*masks[i].shape, 4))
+            mask_overlay[masks[i, :, :] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
 
             # Overlay the red transparent mask
-            axes[i].imshow(np.squeeze(red_mask))
+            axes[i].imshow(np.squeeze(mask_overlay))
+
+        if predictions is not None:
+            predictions_overlay = np.zeros((*predictions[i].shape, 4))
+            predictions_overlay[predictions[i, :, :] > 0] = [0, 1, 0, alpha]  # Green color with alpha transparency
+
+            # Overlay the red transparent mask
+            axes[i].imshow(np.squeeze(predictions_overlay))
 
         axes[i].axis('off')
 
