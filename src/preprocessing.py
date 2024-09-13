@@ -4,7 +4,7 @@ import os
 from scipy.ndimage import zoom
 import numpy as np
 
-def load_nii_files(directory):
+def list_nii_files(directory):
     nii_files = []
     for root, _, files in os.walk(directory):
         for file in files:
