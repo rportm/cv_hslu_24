@@ -26,8 +26,8 @@ def display_all_slices(nii_file_path):
 
 
 # Display slices with mask overlay
-def display_slices_with_masks(slices, masks=None, alpha=0.7, rows=3):
-    num_slices = slices.shape[2]
+def display_slices(image, mask=None, alpha=0.7, rows=3):
+    num_slices = image.shape[2]
     cols = int(np.ceil(num_slices / rows))
 
     fig, axes = plt.subplots(rows, cols, figsize=(20, 3 * rows))
@@ -35,12 +35,12 @@ def display_slices_with_masks(slices, masks=None, alpha=0.7, rows=3):
 
     for i in range(num_slices):
         # Display the original slice
-        axes[i].imshow(slices[:, :, i], cmap='gray')
+        axes[i].imshow(image[:, :, i], cmap='gray')
 
         # Create a red transparent mask
-        if masks is not None:
-            red_mask = np.zeros((*masks[:, :, i].shape, 4))
-            red_mask[masks[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+        if mask is not None:
+            red_mask = np.zeros((*mask[:, :, i].shape, 4))
+            red_mask[mask[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
 
             # Overlay the red transparent mask
             axes[i].imshow(red_mask)
@@ -147,17 +147,17 @@ def resize_all_images(images, x=256, y=256):
 
 
 # Function to filter out slices with no lesions and keep non-empty masks
-def filter_slices_with_lesions(mri_images, masks):
+def filter_slices_with_lesions(images, masks):
     filtered_mri_images = []
     filtered_masks = []
     
-    for mri_image, mask in zip(mri_images, masks):
+    for image, mask in zip(images, masks):
         # Filter slices where the mask is not empty (non-zero elements)
-        non_empty_slices = [i for i in range(mri_image.shape[2]) if np.any(mask[:, :, i] > 0)]
+        non_empty_slices = [i for i in range(image.shape[2]) if np.any(mask[:, :, i] > 0)]
         
         if non_empty_slices:
             # Stack the non-empty slices for both MRI and mask
-            filtered_mri_images.append(np.stack([mri_image[:, :, i] for i in non_empty_slices], axis=-1))
+            filtered_mri_images.append(np.stack([image[:, :, i] for i in non_empty_slices], axis=-1))
             filtered_masks.append(np.stack([mask[:, :, i] for i in non_empty_slices], axis=-1))
     
     return filtered_mri_images, filtered_masks
@@ -170,4 +170,14 @@ def normalize_images(images):
         normalized_image = min_max_normalize(image)
         normalized_images.append(normalized_image)
     return normalized_images
+
+
+# Stack slices from all images into a numpy array of shape (n_slices, x, y, )
+def extract_slices(images):
+    slices = []
+    for image in images:
+        for i in range(image.shape[2]):
+            slices.append(image[:, :, i])
+    slices_array = np.array(slices)
+    return slices_array.reshape(slices_array.shape + (1,))
 
