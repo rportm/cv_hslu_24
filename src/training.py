@@ -1,4 +1,4 @@
-# create a data generator
+import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 # Create a data generator with augmentation
@@ -18,4 +18,15 @@ def get_augment_data_generator():
 def get_combined_iterator(slice_generator, mask_generator):
     train_generator = zip(slice_generator, mask_generator)
     for (img, mask) in train_generator:
-        yield (img, mask)
+        yield img, mask
+
+# Define the Dice coefficient metric
+def dice_coefficient(y_true, y_pred, smooth=1e-6):
+    y_true_f = tf.keras.backend.flatten(y_true)
+    y_pred_f = tf.keras.backend.flatten(y_pred)
+    intersection = tf.keras.backend.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (tf.keras.backend.sum(y_true_f) + tf.keras.backend.sum(y_pred_f) + smooth)
+
+# Define the Dice loss
+def dice_loss(y_true, y_pred):
+    return 1 - dice_coefficient(y_true, y_pred)
