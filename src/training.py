@@ -33,6 +33,9 @@ def dice_coefficient(y_true, y_pred, smooth=1e-6):
 def dice_loss(y_true, y_pred):
     return 1 - dice_coefficient(y_true, y_pred)
 
+def combined_loss(y_true, y_pred, alpha=0.5):
+    return alpha * dice_loss(y_true, y_pred) + (1 - alpha) * tf.keras.losses.binary_crossentropy(y_true, y_pred)
+
 
 # Define the U-Net model with ResNet50 backbone
 def build_unet_resnet50(input_shape=(256, 256, 1)):
