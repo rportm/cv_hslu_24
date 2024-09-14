@@ -32,7 +32,6 @@ def display_image(image, mask=None, alpha=0.7, rows=3):
     plt.show()
 
 
-# Display numpy slices with mask overlay
 def display_slices(slices, masks=None, predictions=None, alpha=0.7, rows=3):
     num_slices = slices.shape[0]
     cols = int(np.ceil(num_slices / rows))
@@ -43,17 +42,30 @@ def display_slices(slices, masks=None, predictions=None, alpha=0.7, rows=3):
     for i in range(num_slices):
         axes[i].imshow(slices[i, :, :], cmap='gray')
 
-        if masks is not None:
-            mask_overlay = np.zeros((*masks[i].shape, 4))
-            mask_overlay[masks[i, :, :] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+        # Initialize a combined overlay
+        combined_overlay = np.zeros((*slices[i].shape, 4))
 
-            axes[i].imshow(np.squeeze(mask_overlay))
+        if masks is not None and predictions is not None:
+            # Create a combined mask where both masks and predictions are present
+            combined_mask = np.logical_or(masks[i, :, :] > 0, predictions[i, :, :] > 0)
 
-        if predictions is not None:
-            predictions_overlay = np.zeros((*predictions[i].shape, 4))
-            predictions_overlay[predictions[i, :, :] > 0] = [0, 1, 0, alpha]  # Green color with alpha transparency
+            # Set yellow color where both overlap
+            combined_overlay[np.logical_and(masks[i, :, :] > 0, predictions[i, :, :] > 0)] = [1, 1, 0, alpha]
 
-            axes[i].imshow(np.squeeze(predictions_overlay))
+            # Set red color where only mask is present
+            combined_overlay[np.logical_and(masks[i, :, :] > 0, predictions[i, :, :] == 0)] = [1, 0, 0, alpha]
+
+            # Set green color where only prediction is present
+            combined_overlay[np.logical_and(masks[i, :, :] == 0, predictions[i, :, :] > 0)] = [0, 1, 0, alpha]
+
+        elif masks is not None:
+            combined_overlay[masks[i, :, :] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+
+        elif predictions is not None:
+            combined_overlay[predictions[i, :, :] > 0] = [0, 1, 0, alpha]  # Green color with alpha transparency
+
+        # Display the combined overlay
+        axes[i].imshow(np.squeeze(combined_overlay))
 
         axes[i].axis('off')
 
