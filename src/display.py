@@ -17,10 +17,10 @@ def display_image(image, mask=None, alpha=0.7, rows=3):
         axes[i].imshow(image[:, :, i], cmap='gray')
 
         if mask is not None:
-            red_mask = np.zeros((*mask[:, :, i].shape, 4))
-            red_mask[mask[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
+            overlay = np.zeros((*mask[:, :, i].shape, 4))
+            overlay[mask[:, :, i] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
 
-            axes[i].imshow(red_mask)
+            axes[i].imshow(overlay)
 
         axes[i].axis('off')
 
@@ -46,17 +46,14 @@ def display_slices(slices, masks=None, predictions=None, alpha=0.7, rows=3):
         combined_overlay = np.zeros((*slices[i].shape, 4))
 
         if masks is not None and predictions is not None:
-            # Create a combined mask where both masks and predictions are present
-            combined_mask = np.logical_or(masks[i, :, :] > 0, predictions[i, :, :] > 0)
-
             # Set yellow color where both overlap
             combined_overlay[np.logical_and(masks[i, :, :] > 0, predictions[i, :, :] > 0)] = [1, 1, 0, alpha]
 
             # Set red color where only mask is present
             combined_overlay[np.logical_and(masks[i, :, :] > 0, predictions[i, :, :] == 0)] = [1, 0, 0, alpha]
 
-            # Set green color where only prediction is present
-            combined_overlay[np.logical_and(masks[i, :, :] == 0, predictions[i, :, :] > 0)] = [0, 1, 0, alpha]
+            # Set blue color where only prediction is present
+            combined_overlay[np.logical_and(masks[i, :, :] == 0, predictions[i, :, :] > 0)] = [0, 0, 1, alpha]
 
         elif masks is not None:
             combined_overlay[masks[i, :, :] > 0] = [1, 0, 0, alpha]  # Red color with alpha transparency
