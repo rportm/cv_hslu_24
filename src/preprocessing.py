@@ -4,11 +4,11 @@ import os
 from scipy.ndimage import zoom
 import numpy as np
 
-def list_nii_files(directory):
+def list_nii_files(directory, endswith='Flair.nii'):
     nii_files = []
     for root, _, files in os.walk(directory):
         for file in files:
-            if file.endswith('Flair.nii'):
+            if file.endswith(endswith):
                 nii_files.append(os.path.join(root, file))
     return sorted(nii_files)
 
