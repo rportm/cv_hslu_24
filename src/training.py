@@ -47,6 +47,10 @@ def build_unet_resnet50(input_shape=(256, 256, 1)):
     # ResNet50 backbone with custom input shape
     resnet = ResNet50(include_top=False, weights='imagenet', input_shape=(256, 256, 3))
 
+    # # Freeze ResNet50 weights
+    # for layer in resnet.layers:
+    #     layer.trainable = False
+
     # Extract layers from ResNet50
     s1 = resnet.get_layer('conv1_relu').output
     s2 = resnet.get_layer('conv2_block3_out').output
