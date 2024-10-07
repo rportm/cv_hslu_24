@@ -7,47 +7,35 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 
-# def get_augment_data_generator():
-#     def brightness_range(img, low=0.8, high=1.2):
-#         return np.clip(img * np.random.uniform(low, high), 0, 1)
-#
-#     def add_gaussian_noise(img, mean=0, std=0.01):
-#         noise = np.random.normal(mean, std, img.shape)
-#         return np.clip(img + noise, 0, 1)
-#
-#     def apply_gaussian_blur(img, sigma_range=(0.1, 0.5)):
-#         sigma = np.random.uniform(*sigma_range)
-#         return gaussian_filter(img, sigma=sigma)
-#
-#     return ImageDataGenerator(
-#         rotation_range=15,  # Increased rotation range
-#         width_shift_range=0.08,  # Increased shift range
-#         height_shift_range=0.08,
-#         zoom_range=0.1,  # Increased zoom range
-#         horizontal_flip=True,
-#         vertical_flip=False,
-#         fill_mode='constant',  # Changed to 'constant' to better handle border areas
-#         cval=0,  # Fill value for areas outside the input boundaries
-#         shear_range=5,  # Added shear transformation
-#         preprocessing_function=lambda x: (
-#             brightness_range(
-#                 add_gaussian_noise(
-#                     apply_gaussian_blur(x)
-#                 )
-#             )
-#         )
-#     )
-
-# Create a data generator with augmentation
 def get_augment_data_generator():
+    def brightness_range(img, low=0.8, high=1.2):
+        return np.clip(img * np.random.uniform(low, high), 0, 1)
+
+    def add_gaussian_noise(img, mean=0, std=0.01):
+        noise = np.random.normal(mean, std, img.shape)
+        return np.clip(img + noise, 0, 1)
+
+    def apply_gaussian_blur(img, sigma_range=(0.1, 0.5)):
+        sigma = np.random.uniform(*sigma_range)
+        return gaussian_filter(img, sigma=sigma)
+
     return ImageDataGenerator(
-        rotation_range=10,  # Slight rotations to account for patient positioning
-        width_shift_range=0.05,  # Small shifts to simulate patient movement
-        height_shift_range=0.05,
-        zoom_range=0.05,  # Slight zooming to account for scan variability
-        horizontal_flip=True,  # Flips can help with generalization
-        vertical_flip=False,  # Vertical flips are less common in medical imaging
-        fill_mode='nearest',  # Fills in newly created pixels
+        rotation_range=15,  # Increased rotation range
+        width_shift_range=0.08,  # Increased shift range
+        height_shift_range=0.08,
+        zoom_range=0.1,  # Increased zoom range
+        horizontal_flip=True,
+        vertical_flip=False,
+        fill_mode='constant',  # Changed to 'constant' to better handle border areas
+        cval=0,  # Fill value for areas outside the input boundaries
+        shear_range=5,  # Added shear transformation
+        preprocessing_function=lambda x: (
+            brightness_range(
+                add_gaussian_noise(
+                    apply_gaussian_blur(x)
+                )
+            )
+        )
     )
 
 # Custom generator function
