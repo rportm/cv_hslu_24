@@ -7,16 +7,19 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 
-def get_augment_data_generator():
+def get_augment_data_generator(mask: bool):
+    # Create a local random number generator
+    rng = np.random.RandomState(42)
+
     def brightness_range(img, low=0.8, high=1.2):
-        return np.clip(img * np.random.uniform(low, high), 0, 1)
+        return np.clip(img * rng.uniform(low, high), 0, 1)
 
     def add_gaussian_noise(img, mean=0, std=0.01):
-        noise = np.random.normal(mean, std, img.shape)
+        noise = rng.normal(mean, std, img.shape)
         return np.clip(img + noise, 0, 1)
 
     def apply_gaussian_blur(img, sigma_range=(0.1, 0.5)):
-        sigma = np.random.uniform(*sigma_range)
+        sigma = rng.uniform(*sigma_range)
         return gaussian_filter(img, sigma=sigma)
 
     return ImageDataGenerator(
@@ -34,7 +37,7 @@ def get_augment_data_generator():
                 add_gaussian_noise(
                     apply_gaussian_blur(x)
                 )
-            )
+            ) if not mask else x
         )
     )
 
