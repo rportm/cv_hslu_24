@@ -3,3 +3,6 @@ Brain MRI Dataset of Multiple Sclerosis with Consensus Manual Lesion Segmentatio
 Brain MRI Dataset of Multiple Sclerosis with Consensus Manual Lesion Segmentation and Patient Meta Information/
 brain_mri_dataset
 miccai21
+logs
+best_model.h5
+best_model_l2_reg.keras
