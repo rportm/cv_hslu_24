@@ -64,7 +64,7 @@ def combined_loss(y_true, y_pred, alpha=0.5):
 
 
 # Define the U-Net model with ResNet50 backbone
-def build_unet_resnet50(input_shape=(256, 256, 1)):
+def build_unet_resnet50(par_l2, par_drop, input_shape=(256, 256, 1)):
     inputs = layers.Input(input_shape)
 
     # Expand input to 3 channels using concatenation instead of Conv2D
@@ -96,26 +96,26 @@ def build_unet_resnet50(input_shape=(256, 256, 1)):
     d1 = layers.UpSampling2D((2, 2))(b1)
     d1 = layers.concatenate([d1, s4])
     d1 = layers.Conv2D(512, 3, activation='relu', padding='same')(d1)
-    d1 = layers.Conv2D(512, 3, activation='relu', padding='same', kernel_regularizer=l2(0.01))(d1)
-    d1 = layers.Dropout(0.3)(d1)  # Add after Conv2D layers
+    d1 = layers.Conv2D(512, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d1)
+    d1 = layers.Dropout(par_drop)(d1)  # Add after Conv2D layers
 
     d2 = layers.UpSampling2D((2, 2))(d1)
     d2 = layers.concatenate([d2, s3])
     d2 = layers.Conv2D(256, 3, activation='relu', padding='same')(d2)
-    d2 = layers.Conv2D(256, 3, activation='relu', padding='same', kernel_regularizer=l2(0.01))(d2)
-    d2 = layers.Dropout(0.3)(d2)
+    d2 = layers.Conv2D(256, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d2)
+    d2 = layers.Dropout(par_drop)(d2)
 
     d3 = layers.UpSampling2D((2, 2))(d2)
     d3 = layers.concatenate([d3, s2])
     d3 = layers.Conv2D(128, 3, activation='relu', padding='same')(d3)
-    d3 = layers.Conv2D(128, 3, activation='relu', padding='same', kernel_regularizer=l2(0.01))(d3)
-    d3 = layers.Dropout(0.3)(d3)
+    d3 = layers.Conv2D(128, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d3)
+    d3 = layers.Dropout(par_drop)(d3)
 
     d4 = layers.UpSampling2D((2, 2))(d3)
     d4 = layers.concatenate([d4, s1])
     d4 = layers.Conv2D(64, 3, activation='relu', padding='same')(d4)
-    d4 = layers.Conv2D(64, 3, activation='relu', padding='same', kernel_regularizer=l2(0.01))(d4)
-    d4 = layers.Dropout(0.3)(d4)
+    d4 = layers.Conv2D(64, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d4)
+    d4 = layers.Dropout(par_drop)(d4)
 
     d5 = layers.UpSampling2D(size=(2, 2))(d4)
 
