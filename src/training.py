@@ -3,7 +3,9 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers, models
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.regularizers import l2
+import keras_tuner as kt
 import numpy as np
+import math
 from scipy.ndimage import gaussian_filter
 
 
@@ -64,7 +66,7 @@ def combined_loss(y_true, y_pred, alpha=0.5):
 
 
 # Define the U-Net model with ResNet50 backbone
-def build_unet_resnet50(par_l2, par_drop, input_shape=(256, 256, 1)):
+def build_unet_resnet50(l2_reg=0.01, dropout=0.3, input_shape=(256, 256, 1)):
     inputs = layers.Input(input_shape)
 
     # Expand input to 3 channels using concatenation instead of Conv2D
@@ -96,26 +98,26 @@ def build_unet_resnet50(par_l2, par_drop, input_shape=(256, 256, 1)):
     d1 = layers.UpSampling2D((2, 2))(b1)
     d1 = layers.concatenate([d1, s4])
     d1 = layers.Conv2D(512, 3, activation='relu', padding='same')(d1)
-    d1 = layers.Conv2D(512, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d1)
-    d1 = layers.Dropout(par_drop)(d1)  # Add after Conv2D layers
+    d1 = layers.Conv2D(512, 3, activation='relu', padding='same', kernel_regularizer=l2(l2_reg))(d1)
+    d1 = layers.Dropout(dropout)(d1)  # Add after Conv2D layers
 
     d2 = layers.UpSampling2D((2, 2))(d1)
     d2 = layers.concatenate([d2, s3])
     d2 = layers.Conv2D(256, 3, activation='relu', padding='same')(d2)
-    d2 = layers.Conv2D(256, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d2)
-    d2 = layers.Dropout(par_drop)(d2)
+    d2 = layers.Conv2D(256, 3, activation='relu', padding='same', kernel_regularizer=l2(l2_reg))(d2)
+    d2 = layers.Dropout(dropout)(d2)
 
     d3 = layers.UpSampling2D((2, 2))(d2)
     d3 = layers.concatenate([d3, s2])
     d3 = layers.Conv2D(128, 3, activation='relu', padding='same')(d3)
-    d3 = layers.Conv2D(128, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d3)
-    d3 = layers.Dropout(par_drop)(d3)
+    d3 = layers.Conv2D(128, 3, activation='relu', padding='same', kernel_regularizer=l2(l2_reg))(d3)
+    d3 = layers.Dropout(dropout)(d3)
 
     d4 = layers.UpSampling2D((2, 2))(d3)
     d4 = layers.concatenate([d4, s1])
     d4 = layers.Conv2D(64, 3, activation='relu', padding='same')(d4)
-    d4 = layers.Conv2D(64, 3, activation='relu', padding='same', kernel_regularizer=l2(par_l2))(d4)
-    d4 = layers.Dropout(par_drop)(d4)
+    d4 = layers.Conv2D(64, 3, activation='relu', padding='same', kernel_regularizer=l2(l2_reg))(d4)
+    d4 = layers.Dropout(dropout)(d4)
 
     d5 = layers.UpSampling2D(size=(2, 2))(d4)
 
@@ -123,3 +125,86 @@ def build_unet_resnet50(par_l2, par_drop, input_shape=(256, 256, 1)):
 
     model = models.Model(inputs=inputs, outputs=outputs)
     return model
+
+
+def cosine_annealing(epoch, total_epochs, initial_lr, min_lr):
+    return min_lr + (initial_lr - min_lr) * (1 + math.cos(math.pi * epoch / total_epochs)) / 2
+
+
+def train_model(model, iterator_train, iterator_val, batch_size, epochs, steps_per_epoch, validation_steps):
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                  loss=combined_loss,
+                  metrics=[dice_coefficient])
+
+    lr_scheduler = tf.keras.callbacks.LearningRateScheduler(
+        lambda epoch: cosine_annealing(epoch, total_epochs=50, initial_lr=1e-4, min_lr=1e-6)
+    )
+
+    # Define callbacks
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True,
+                                           monitor='val_dice_coefficient', mode='max'),
+        lr_scheduler,
+        tf.keras.callbacks.EarlyStopping(monitor='val_dice_coefficient', patience=10, mode='max',
+                                         restore_best_weights=True)
+    ]
+
+    # Train the model
+    history = model.fit(
+        iterator_train,
+        steps_per_epoch=steps_per_epoch,
+        validation_data=iterator_val,
+        validation_steps=validation_steps,
+        epochs=epochs,
+        callbacks=callbacks
+    )
+
+    return model, history
+
+
+def build_hypermodel(hp):
+    # Hyperparameters to tune
+    learning_rate = hp.Float('learning_rate', min_value=1e-5, max_value=1e-3, sampling='log')
+    dropout_rate = hp.Float('dropout_rate', min_value=0.0, max_value=0.5, step=0.1)
+    l2_reg = hp.Float('l2_reg', min_value=1e-6, max_value=1e-2, sampling='log')
+
+    # Build the model using the hyperparameters
+    model = build_unet_resnet50(l2_reg, dropout_rate, input_shape=(256, 256, 1))
+
+    # Compile the model
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer=optimizer,
+                  loss=combined_loss,
+                  metrics=[dice_coefficient])
+    return model
+
+
+def hyperparam_tuning(iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps):
+    # Initialize the Keras Tuner
+    tuner = kt.Hyperband(
+        build_hypermodel,
+        objective=kt.Objective('val_dice_coefficient', direction='max'),
+        max_epochs=epochs,
+        factor=3,
+        hyperband_iterations=2,
+        # directory='hyperparam_tuning_logs',
+        project_name='hyperparam_tuning'
+    )
+
+    # Early stopping callback
+    stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_dice_coefficient', patience=5, mode='max')
+
+    # TensorBoard callback for visualization
+    tensorboard_cb = tf.keras.callbacks.TensorBoard('logs/hparam_tuning')
+
+    # Perform hyperparameter search
+    tuner.search(
+        iterator_train,
+        steps_per_epoch=steps_per_epoch,
+        validation_data=iterator_val,
+        validation_steps=validation_steps,
+        epochs=epochs,
+        callbacks=[stop_early, tensorboard_cb]
+    )
+
+    return tuner
