@@ -50,7 +50,7 @@ def get_combined_iterator(slice_generator, mask_generator):
         yield img, mask
 
 # Get augmented train and validation iterators
-def get_augment_iterators(slices_train, masks_train, seed=1, batch_size=32):
+def get_augment_iterators(slices_train, masks_train, slices_val, masks_val, seed=1, batch_size=32):
     # Flow from memory
     slice_iterator_train = get_augment_data_generator(False).flow(slices_train, seed=seed, batch_size=batch_size)
     mask_iterator_train = get_augment_data_generator(True).flow(masks_train, seed=seed, batch_size=batch_size)
@@ -58,9 +58,9 @@ def get_augment_iterators(slices_train, masks_train, seed=1, batch_size=32):
     # Combined generator
     iterator_train = get_combined_iterator(slice_iterator_train, mask_iterator_train)
 
-    # We probably don't want to augment the validation data?
-    slice_iterator_val = ImageDataGenerator().flow(slices_train, seed=seed, batch_size=batch_size)
-    mask_iterator_val = ImageDataGenerator().flow(masks_train, seed=seed, batch_size=batch_size)
+    # Validation iterator
+    slice_iterator_val = ImageDataGenerator().flow(slices_val, seed=seed, batch_size=batch_size)
+    mask_iterator_val = ImageDataGenerator().flow(masks_val, seed=seed, batch_size=batch_size)
 
     iterator_val = get_combined_iterator(slice_iterator_val, mask_iterator_val)
 
