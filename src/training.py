@@ -149,14 +149,15 @@ def cosine_annealing(epoch, total_epochs, initial_lr, min_lr):
     return min_lr + (initial_lr - min_lr) * (1 + math.cos(math.pi * epoch / total_epochs)) / 2
 
 
-def train_model(model, iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps, use_lr_scheduler=False):
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+def train_model(model, iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps,
+                learning_rate=1e-4, use_lr_scheduler=False, best_model_file='best_model.keras'):
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                   loss=combined_loss,
                   metrics=[dice_coefficient])
 
     # Define callbacks
     callbacks = [
-        tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True,
+        tf.keras.callbacks.ModelCheckpoint(best_model_file, save_best_only=True,
                                            monitor='val_dice_coefficient', mode='max'),
         tf.keras.callbacks.EarlyStopping(monitor='val_dice_coefficient', patience=10, mode='max',
                                          restore_best_weights=True)
@@ -164,7 +165,7 @@ def train_model(model, iterator_train, iterator_val, epochs, steps_per_epoch, va
 
     if use_lr_scheduler:
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(
-            lambda epoch: cosine_annealing(epoch, total_epochs=epochs, initial_lr=1e-4, min_lr=1e-6)
+            lambda epoch: cosine_annealing(epoch, total_epochs=epochs, initial_lr=learning_rate, min_lr=1e-6)
         )
         callbacks.append(lr_scheduler)
 
@@ -187,6 +188,9 @@ def build_hypermodel(hp):
     dropout_rate = hp.Float('dropout_rate', min_value=0.0, max_value=0.5, step=0.1)
     l2_reg = hp.Float('l2_reg', min_value=1e-6, max_value=1e-2, sampling='log')
 
+    # Clear the session, try to avoid memory leak: https://github.com/keras-team/keras-tuner/issues/395
+    tf.keras.backend.clear_session()
+
     # Build the model using the hyperparameters
     model = build_unet_resnet50(l2_reg, dropout_rate, input_shape=(256, 256, 1))
 
@@ -197,17 +201,21 @@ def build_hypermodel(hp):
     return model
 
 
-def hyperparam_tuning(iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps):
+def get_tuner(epochs=50):
     # Initialize the Keras Tuner
-    tuner = kt.Hyperband(
+    return kt.Hyperband(
         build_hypermodel,
         objective=kt.Objective('val_dice_coefficient', direction='max'),
         max_epochs=epochs,
         factor=3,
         hyperband_iterations=2,
-        # directory='hyperparam_tuning_logs',
         project_name='hyperparam_tuning'
     )
+
+
+def hyperparam_tuning(iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps):
+    # Initialize the Keras Tuner
+    tuner = get_tuner(epochs)
 
     # Early stopping callback
     stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_dice_coefficient', patience=5, mode='max')
