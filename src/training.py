@@ -149,8 +149,8 @@ def cosine_annealing(epoch, total_epochs, initial_lr, min_lr):
     return min_lr + (initial_lr - min_lr) * (1 + math.cos(math.pi * epoch / total_epochs)) / 2
 
 
-def train_model(model, iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps,
-                learning_rate=1e-4, use_lr_scheduler=False, best_model_file='best_model.keras'):
+def train_model(model, iterator_train, iterator_val, steps_per_epoch, validation_steps,
+                epochs=20, learning_rate=1e-4, use_lr_scheduler=False, best_model_file='best_model.keras'):
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                   loss=combined_loss,
                   metrics=[dice_coefficient])
