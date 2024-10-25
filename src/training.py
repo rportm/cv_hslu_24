@@ -131,23 +131,24 @@ def cosine_annealing(epoch, total_epochs, initial_lr, min_lr):
     return min_lr + (initial_lr - min_lr) * (1 + math.cos(math.pi * epoch / total_epochs)) / 2
 
 
-def train_model(model, iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps):
+def train_model(model, iterator_train, iterator_val, epochs, steps_per_epoch, validation_steps, use_lr_scheduler=False):
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                   loss=combined_loss,
                   metrics=[dice_coefficient])
-
-    lr_scheduler = tf.keras.callbacks.LearningRateScheduler(
-        lambda epoch: cosine_annealing(epoch, total_epochs=50, initial_lr=1e-4, min_lr=1e-6)
-    )
 
     # Define callbacks
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint('best_model.keras', save_best_only=True,
                                            monitor='val_dice_coefficient', mode='max'),
-        lr_scheduler,
         tf.keras.callbacks.EarlyStopping(monitor='val_dice_coefficient', patience=10, mode='max',
                                          restore_best_weights=True)
     ]
+
+    if use_lr_scheduler:
+        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(
+            lambda epoch: cosine_annealing(epoch, total_epochs=epochs, initial_lr=1e-4, min_lr=1e-6)
+        )
+        callbacks.append(lr_scheduler)
 
     # Train the model
     history = model.fit(
